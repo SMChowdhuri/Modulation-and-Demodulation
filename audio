@@ -1,0 +1,125 @@
+
+clc
+close all
+% Given the path of the message signal
+file_name="C:\Users\SUMAT\Downloads\mittikhusbu.wav";
+[y,Fs] = audioread(file_name);% read the message signal
+n=length(y);% lenght of the message signal 
+%sound(y,Fs);% sounds of the message signal
+t = 0:1/Fs: ((n-1)/Fs); % t vector 
+f = (-n/2:n/2-1).*(Fs/n); %frequency range for frequency domain plot
+
+%Time Domain Plot
+subplot(321);
+plot(t,y,'LineWidth',1.5); 
+title('Original Audio siganl / Message')
+xlabel('Time')
+ylabel('Amplitude')
+
+%Frequency Domain Representation
+Y = fft(y,n);
+Y = fftshift(Y);
+p = abs(Y);
+
+%Frequency Domain Plot
+subplot(322)
+plot(f,p,'LineWidth',1.5);
+title('Freq Domain Representaion of Msg siganl');
+xlabel('Frequency')
+ylabel('Amplitude')
+
+%Carrier Signal
+Ac=5; %Amplitude
+Fc=1000; %10*1000
+xc=Ac*cos(2*pi*Fc*t)';
+
+%Time doamin plot of Carrier signal
+subplot(323)
+plot(t,xc)
+title('Carrier Signal')
+xlabel('Time')
+ylabel('Amplitude')
+
+%Frequency Domain Plot of Carrier Signal
+XC=fft(xc,n);
+XC= fftshift(XC);
+P = abs(XC);
+subplot(324)
+plot(f,P)
+title('Freq Domain Representation of Carrier Signal ')
+xlabel('Frequency')
+ylabel('Amplitude')
+
+u=5;
+%Phase Modulation
+p=diff(y)/(1/Fs);
+N=length(p);
+t1=linspace(0,N/Fs,N);
+x=cumsum(p);
+PM = Ac * cos(2 * pi * Fc * t1 + u * x(1:length(t1)));
+
+
+subplot(325)
+plot(t1,PM);
+title(sprintf('PM Modulation when u=%d',u));
+xlabel('Time')
+ylabel('Amplitude')
+axis([0 0.08 -0.4 0.4]);
+
+%Frequency Domain Represention
+A=fft(PM,n);
+A=fftshift(A);
+subplot(326)
+plot(f,abs(A));
+title(sprintf('Freq Domain of PM Mod when u=%d',u))
+xlabel('Frequency')
+ylabel('Amplitude')
+
+
+% Demodulate the PM signal using the differential method
+%diff_signal = diff(FM);% Take the difference
+%delta = 1/Fs;
+%demod_signal = 2*pi*Fc*cumsum(diff_signal)/Fs + pi/2; % Integrate and add phase offset
+%l=lowpass(demod_signal,2000,Fs);
+
+%phase method
+phase_signal = unwrap(angle(hilbert(FM)));
+x = diff(phase_signal)*Fs / (2*pi);
+
+%Discriminator method
+%x=diff(FM)/(2*pi*Fc);
+
+
+frequency1 = 20/(Fs/2);
+f2=20000/(Fs/2);
+filter_order = 2;
+%nyquist = Fs / 2;
+b = fir1(filter_order, [frequency1,f2]);
+l = filtfilt(b, 1, x);
+
+
+%Time Domain Representation
+figure
+subplot(211)
+plot(t(2:end),l);
+title(sprintf('PM Demodulation when u=%d',u));
+xlabel('Time')
+ylabel('Amplitude')
+axis([0 1.6 -4 4]);
+
+%Frequency Domain Represention
+A=fft(l,n);
+A=fftshift(A);
+subplot(212)
+plot(f,abs(A));
+title(sprintf('Freq Domain of PM Demod when u=%d',u))
+xlabel('Frequency')
+ylabel('Amplitude')
+
+sound(l,Fs);
+
+%Saving the FM output
+filename1 = sprintf('PM_Demod.wav');
+audiowrite(filename1,FM,Fs);
+
+
